@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: sonda
+  name: sonda
+  namespace: elo7
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonda
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: sonda
+    spec:
+      containers:
+      - image: rlucio01/py:latest
+        imagePullPolicy: Always
+        name: sonda
+        ports:
+        - containerPort: 5000
+          name: 5000tcp02
+          protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: sonda
+  name: sonda
+  namespace: elo7
+spec:
+  ports:
+  - nodePort: 30749
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    app: sonda
+  type: NodePort
+status:
+  loadBalancer: {}

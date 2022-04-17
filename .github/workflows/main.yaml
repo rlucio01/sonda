@@ -1,0 +1,52 @@
+name: CI-CD
+
+on:  
+  push:
+    branches: [ main ]
+  
+  workflow_dispatch:
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Docker Login
+        uses: docker/login-action@v1.10.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker Build and push
+        uses: docker/build-push-action@v2
+        with:
+         context: ./
+         file: ./Docker/Dockerfile
+         push: true
+         tags: | 
+           rlucio01/py:latest
+           rlucio01/py:${{ github.run_number }}
+        
+  CD:
+    needs: [CI]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        
+      - name: Kubernetes set context
+        uses: Azure/k8s-set-context@v1.1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.K8S_CONFIG }}
+      
+      - name: Deploy to Kubernetes cluster
+        uses: Azure/k8s-deploy@v1.3
+        with: 
+          images: rlucio01/py:${{ github.run_number }} 
+          namespace: |
+            elo7  
+          manifests: |
+            ./deployment.yaml
